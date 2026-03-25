@@ -11,12 +11,15 @@ import { Product } from 'src/database/entities/product.entity';
 import { errorMessages } from 'src/errors/custom';
 import { validate } from 'class-validator';
 import { successObject } from 'src/common/helper/sucess-response.interceptor';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { ProductActivatedEvent } from 'src/common/events/product-activated.event';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async getProduct(productId: number) {
@@ -24,11 +27,19 @@ export class ProductService {
       where: {
         id: productId,
       },
+      relations: ['category', 'variations', 'variations.inventories'],
     });
 
     if (!product) throw new NotFoundException(errorMessages.product.notFound);
 
     return product;
+  }
+
+  async getProducts() {
+    return await this.entityManager.find(Product, {
+      relations: ['category'],
+      order: { id: 'DESC' },
+    });
   }
 
   async createProduct(data: CreateProductDto, merchantId: number) {
@@ -80,6 +91,25 @@ export class ProductService {
       })
       .where('id = :id', { id: productId })
       .andWhere('merchantId = :merchantId', { merchantId })
+      .returning(['id', 'isActive'])
+      .execute();
+
+    this.eventEmitter.emit(
+      'product.activated',
+      new ProductActivatedEvent(productId),
+    );
+
+    return result.raw[0];
+  }
+
+  async disactivateProduct(productId: number) {
+    const result = await this.entityManager
+      .createQueryBuilder()
+      .update<Product>(Product)
+      .set({
+        isActive: false,
+      })
+      .where('id = :id', { id: productId })
       .returning(['id', 'isActive'])
       .execute();
 

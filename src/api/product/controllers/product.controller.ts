@@ -11,6 +11,11 @@ import { User } from 'src/database/entities/user.entity';
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
+  @Get()
+  async getProducts() {
+    return this.productService.getProducts();
+  }
+
   @Get(':id')
   async getProduct(@Param() product: FindOneParams) {
     return this.productService.getProduct(product.id);
@@ -42,6 +47,12 @@ export class ProductController {
     @CurrentUser() user: User,
   ) {
     return this.productService.activateProduct(product.id, user.id);
+  }
+
+  @Auth(RoleIds.Admin, RoleIds.Merchant)
+  @Post(':id/activate')
+  async desactiveProduct(@Param() product: FindOneParams) {
+    return this.productService.disactivateProduct(product.id);
   }
 
   @Auth(RoleIds.Admin, RoleIds.Merchant)

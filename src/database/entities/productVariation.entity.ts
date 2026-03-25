@@ -6,10 +6,12 @@ import {
   JoinColumn,
   PrimaryGeneratedColumn,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
 import { Color } from './color.entity';
 import { Product } from './product.entity';
 import { Size } from './size.entity';
+import { Inventory } from './inventory.entity';
 
 @Entity()
 export class ProductVariation {
@@ -39,6 +41,9 @@ export class ProductVariation {
 
   @Column({ type: 'text', array: true, default: [] })
   public imageUrls: string[];
+
+  @OneToMany(() => Inventory, (inventory) => inventory.productVariation)
+  public inventories: Inventory[]; // Plural, porque puede haber varios países
 
   @CreateDateColumn({ type: 'timestamp' })
   public createdAt!: Date;
